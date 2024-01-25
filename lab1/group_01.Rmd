@@ -1,0 +1,747 @@
+---
+title: "Computer lab 1 block 1"
+date: "`r Sys.Date()`"
+author: "Johannes Hedström, Mikael Montén & Siddhesh Sreedar"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: yes
+    number_sections: yes
+  html_document:
+    df_print: paged
+geometry: top=100pt,bottom=100pt,left=68pt,right=66pt
+header-includes:
+- \usepackage{float}
+- \usepackage{longtable}
+- \usepackage{caption}
+- \usepackage{fancyhdr}
+- \usepackage{titling}
+- \renewcommand{\headrulewidth}{0pt}
+- \renewcommand{\and}{\\}
+- \pretitle{\centering\vspace{0cm}{732A99/732A68/ TDDE01 Machine Learning \par}\vspace{5cm}\Huge\textbf}
+- \posttitle{\vspace{1cm}\large\textbf{}\par}
+- \preauthor{\centering\vspace{4cm}\normalsize}
+- \postauthor{\par\vspace{2cm}}
+- \predate{\centering{\normalsize STIMA \\
+  Department of Computer and Information Science \\ Linköpings universitet \par}}
+- \postdate{\par\vspace{0cm}}
+- \raggedbottom
+bibliography: ref.bib
+---
+
+
+<!-- page number pos -->
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\pagestyle{fancy}
+
+<!-- no page nr on first page  -->
+\pagenumbering{gobble}
+
+<!-- Anger sidbrytning -->
+\clearpage
+
+<!-- creating the table of contents -->
+\setcounter{tocdepth}{3}
+\tableofcontents
+
+<!-- new page -->
+\clearpage
+
+<!-- starting the count on 1 after the contents -->
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, fig.width = 5, fig.height = 3, fig.align = 'center')
+set.seed(12345)
+```
+
+```{r, cache = TRUE}
+# packages
+library(kknn)
+library(knitr)
+library(ggplot2)
+library(cowplot)
+library(dplyr)
+library(caret)
+
+```
+
+# Contribution of work
+
+Johannes did the first assignment, Siddhesh did assignment two and Mikael did the third. Code and answers were first made individually, but we have all(Johannes, Siddhesh and Mikael) read and discussed our answers together afterwards and this lab report is the result of those discussions. 
+
+
+
+# Assignment 1 
+
+The data file optdigits.csv contains information about normalized bitmaps of
+handwritten digits from a preprinted form from a total of 43 people. The data were
+first derived as 32x32 bitmaps which were then divided into nonoverlapping blocks
+of 4x4 and the number of on pixels are counted in each block. This has generated the
+resulting image of size 8x8 where each element is an integer in the range 0..16.
+Accordingly, each row in the data file is a sequence corresponding to 8x8 matrix,
+and the last element shows the actual digit from 0 to 9.
+
+
+## 1
+
+Import the data into R and divide it into training, validation and test sets
+(50%/25%/25%) by using the partitioning principle specified in the lecture slides. 
+
+```{r, cache = TRUE}
+## 1.1 
+optdigits <- read.csv("optdigits.csv")
+
+set.seed(12345)
+
+# number of observations
+n <- nrow(optdigits)
+set.seed(12345)
+# sampling out train, val and testdata
+id <- sample(1:n, floor(n*0.5))
+
+train_1 <- optdigits[id,] # traindata
+
+id1 <- setdiff(1:n, id) 
+
+set.seed(12345)
+
+id2 = sample(id1, floor(n*0.25)) 
+
+val_1 = optdigits[id2,] # validation data
+
+id3 <- setdiff(id1, id2)
+
+test_1 <- optdigits[id3,] # testdata
+
+```
+
+
+
+
+## 2
+
+Use training data to fit 30-nearest neighbor classifier with function kknn() and
+kernel=”rectangular” from package kknn and estimate
+
+* Confusion matrices for the training and test data (use table())
+* Misclassification errors for the training and test data
+
+Comment on the quality of predictions for different digits and on the overall
+prediction quality
+
+
+```{r, cache = TRUE}
+
+
+
+# training the model with k =30
+knn_mod <- train.kknn(as.factor(X0.26)~. , train_1, ks=30, kernel = "rectangular")
+
+
+
+# confusion matrix for train data
+
+knitr::kable(table(train_1$X0.26,predict(knn_mod, train_1)), caption = 'Confusion matrix for train data')
+
+```
+
+
+```{r, cache = TRUE}
+# confusion matrix for test data
+knitr::kable(table(test_1$X0.26,predict(knn_mod, test_1)), caption = 'Confusion matrix for test data')
+```
+
+
+```{r, cache = TRUE}
+# missclass train
+m1 <- 1 - ( sum(diag(table(predict(knn_mod, train_1), train_1$X0.26)))/sum(table(predict(knn_mod, train_1), train_1$X0.26)))
+
+
+
+# Missclass test
+m2 <- 1 - ( sum(diag(table(predict(knn_mod, test_1), test_1$X0.26)))/sum(table(predict(knn_mod, test_1), test_1$X0.26)))
+
+
+knitr::kable(data.frame('Train'=m1, 'Test'=m2), caption = 'Misclassification errors for the training and test data')
+
+```
+
+The model predicts the number quite good, but has some problems to differentiate between eights and ones, fives and nines and four and sevens which you can see in both the confusion matrices for the training and test data. The problem with eight and ones seem to mostly be a problem for the training data though, which might indicate that these numbers are written in an outlying way.  
+
+As the misclassification error is low, and the difference between the train and test misclassification error is small, therefore the quality of the model prediction is quite good.  
+
+## 3
+
+Find any 2 cases of digit “8” in the training data which were easiest to classify
+and 3 cases that were hardest to classify (i.e. having highest and lowest
+probabilities of the correct class). Reshape features for each of these cases as
+matrix 8x8 and visualize the corresponding digits (by using e.g. heatmap()
+function with parameters Colv=NA and Rowv=NA) and comment on whether
+these cases seem to be hard or easy to recognize visually
+
+### Two eights with probability of 1 to be an eight
+
+```{r, cache = TRUE}
+
+knn_mod <- kknn(as.factor(X0.26)~. , train=train_1,test=train_1, k=30, kernel = "rectangular")
+index <- which(train_1$X0.26==8)
+
+df <- data.frame("True"=train_1$X0.26[index],"Prob"=knn_mod$prob[index,9],"Fitted"=knn_mod$fitted.values[index])
+rownames(df) <- index
+# two 8s with prob = 1
+
+map1 <- train_1[34,-ncol(train_1)]
+map2 <- train_1[209,-ncol(train_1)]
+
+# the three lowest
+map3 <- train_1[1624,-ncol(train_1)]
+map4 <- train_1[1663,-ncol(train_1)]
+map5 <- train_1[229,-ncol(train_1)]
+
+mat1 <- matrix(as.numeric(map1), ncol=8)
+mat2 <- matrix(as.numeric(map2), ncol=8)
+
+mat3 <- matrix(as.numeric(map3), ncol=8)
+mat4 <- matrix(as.numeric(map4), ncol=8)
+mat5 <- matrix(as.numeric(map5), ncol=8)
+
+
+# the two best 8s
+#heatmap(t(mat1),Colv=NA, Rowv=NA)
+
+df <- df[order(df$Prob, decreasing = TRUE),]
+
+knitr::kable(head(df,2), caption = "Two with 1 as probability of being an eight")
+knitr::kable(tail(df,3), caption = "The three lowest probabilities of being an eight")
+
+```
+
+In these two tables we can see the highest and lowest probabilities and the rownames for each observation which we use as indices to get the right observations for the heatmaps. 
+
+
+
+```{r, cache = TRUE}
+plot_grid(heatmap(t(mat1),Colv=NA, Rowv=NA),heatmap(t(mat2),Colv=NA, Rowv=NA))
+```
+
+Its clear that these two numbers are written as an eight.
+
+### The three eights with the lowest probability of being an eight
+
+```{r, cache = TRUE}
+plot_grid(heatmap(t(mat3),Colv=NA, Rowv=NA),heatmap(t(mat4),Colv=NA, Rowv=NA),heatmap(t(mat5),Colv=NA, Rowv=NA))
+#heatmap(t(mat3),Colv=NA, Rowv=NA)
+
+```
+
+```{r, cache = TRUE}
+#heatmap(t(mat4),Colv=NA, Rowv=NA)
+```
+
+```{r, cache = TRUE}
+#heatmap(t(mat5),Colv=NA, Rowv=NA)
+```
+
+
+Its clearly harder visually to see an 8 in the last three heatmaps, its not that strange that the model is having problems to classify these 3 numbers as an 8(which could be seen in the confusing matrix for the training data).
+
+
+## 4
+
+Fit a K-nearest neighbor classifiers to the training data for different values of K = 1,2, ..., 30 and plot the dependence of the training and validation misclassification errors on the value of K (in the same plot). How does the model complexity
+change when K increases and how does it affect the training and validation errors? Report the optimal K according to this plot. Finally, estimate the test error for the model having the optimal K, compare it with the training and validation
+errors and make necessary conclusions about the model quality
+
+```{r, cache = TRUE}
+
+miss_t <- c()
+miss_v <- c()
+i=1
+# looping from 1 to 30 and fitting a new model for each i, with k=1
+for (i  in 1:30) {
+  
+  knn_loop <- train.kknn(as.factor(X0.26)~. , train_1, ks=i, kernel = "rectangular")
+  miss_t[i] <- 1 - ( sum(diag(table(predict(knn_loop, train_1), train_1$X0.26)))/sum(table(predict(knn_loop, train_1), train_1$X0.26)))
+  miss_v[i] <- 1 - ( sum(diag(table(predict(knn_loop, val_1), val_1$X0.26)))/sum(table(predict(knn_loop, val_1), val_1$X0.26)))
+  
+}
+
+
+      # creating a df to make the plot in ggplot
+df <- data.frame('K'=rep(1:30,2), 'Dataset'=c(rep('train', 30), rep('val', 30)), 'MissC' = c(miss_t, miss_v))
+
+# creating the plot
+ggplot(df, aes(x=K,y=MissC, color=Dataset)) + geom_line(size=1.5) + theme_bw() +
+            ylab('Misclassification errors') + geom_vline(xintercept=which.min(miss_v),linetype='dashed')
+
+```
+
+The complexity of the model decreases as the k increases, as each cluster of neighbors is less detailed when k grows larger and the model is less likely to overfit(can be seen for low K values in the graph), but when k is getting too large the model is underfitting instead which can be seen as the error is increasing for both the training and validation data. 
+
+The misclassification error follow the 2 datasets very similarly, and is lowest for the validation-data at k = 7, which then should be the optimal K.
+
+
+```{r, cache = TRUE}
+best_mod <- train.kknn(as.factor(X0.26)~. , train_1, ks=7, kernel = "rectangular")
+
+m3 <- 1 - ( sum(diag(table(predict(best_mod, test_1), test_1$X0.26)))/sum(table(predict(best_mod, test_1), test_1$X0.26)))
+
+knitr::kable(data.frame('Test'= m3), caption = 'Test misclassification error for optimal k', digits=4)
+
+```
+
+The test error is higher than both the training and validation error(both below 0.03 for K=7), this is often expected as we haven´t picked our model based on the results from this dataset, but it might indicate that K = 7 isnt the optimal K when using the model on new data because we might be overfitting the model slightly. K = 7 could produce the best model for our validation data but not generally when classifying written numbers for example.  
+
+## 5
+
+Fit K-nearest neighbor classifiers to the training data for different values of K = 1,2, ..., 30, compute the error for the validation data as cross-entropy ( when computing log of probabilities add a small constant within log, e.g. 1e-15, to
+avoid numerical problems) and plot the dependence of the validation error on the value of K. What is the optimal K value here? Assuming that response has multinomial distribution, why might the cross-entropy be a more suitable choice
+of the error function than the misclassification error for this problem?
+
+
+
+```{r, cache = TRUE}
+
+cross_i <- c()
+
+# looping from 1 to 30 and fitting a new model for each i, with k=1
+for (i  in 1:30) {
+  
+  knn_loop <- kknn(as.factor(X0.26)~. , train_1,test = val_1, k=i, kernel = "rectangular")
+  x <- 0
+  t <- 1
+  
+  while(t <= length(val_1$X0.26)){ 
+      for(j in val_1$X0.26){
+       
+  x <-  (x + log(knn_loop$prob[t,colnames(knn_loop$prob) == as.character(j)] + 1e-15))
+    
+  t <- t + 1
+      }
+    
+   }
+  
+  cross_i[i] <- -x
+    
+}
+
+
+
+
+# creating a df to make the plot in ggplot
+df <- data.frame('K'=c(1:30), 'Cross-entropy' = cross_i)
+
+# creating the plot
+ggplot(df, aes(x=K,y=cross_i)) + geom_line(linewidth=1.5) + theme_bw() +
+  ylab('Cross-entropy errors') + geom_vline(xintercept=which.min(cross_i),linetype='dashed')
+
+
+```
+
+Here we get K = 8 as the optimal K value for the model, so it slightly differs to the result in 1.4.
+
+Cross-entropy is better for this problem as we have several classes and our previous results(for k=30) showed that our model had problems classifying some numbers more than other. It penalizes models more(than misclassification error) for predictions that are incorrect and provides a more detailed measure of the difference between predicted and true class probabilities, using this to chose K ultimately gives us a model with well calibrated probabilities for each digit.
+
+
+
+
+# Assignment 2
+
+
+The data file parkinson.csv is composed of a range of biomedical voice measurements from 42 people with early-stage Parkinson's disease recruited to a six-month trial of a telemonitoring device for remote symptom progression
+monitoring. The purpose is to predict Parkinson's disease symptom score (motor UPDRS) from the following voice characteristics:
+
+* Jitter(%),Jitter(Abs),Jitter:RAP,Jitter:PPQ5,Jitter:DDP - Several measures of variation in fundamental frequency
+
+* Shimmer,Shimmer(dB),Shimmer:APQ3,Shimmer:APQ5,Shimmer:APQ11,Shimmer:DDA - Several measures of variation in amplitude
+
+* NHR,HNR - Two measures of ratio of noise to tonal components in the voice
+
+* RPDE - A nonlinear dynamical complexity measure
+
+* DFA - Signal fractal scaling exponent
+
+* PPE - A nonlinear measure of fundamental frequency variation
+
+
+```{r}
+data<-read.csv("parkinsons.csv")
+
+#dependent variable: motor_UPDRS 
+```
+
+## 1
+
+Divide it into training and test data (60/40) and scale it appropriately. In the coming steps, assume that motor_UPDRS is normally distributed and is a function of the voice characteristics, and since the data are scaled, no intercept is needed in the modelling.
+
+```{r}
+#removing variables that are not required
+data1<-data[,-c(1:4)]
+data1<-data1[,-2]
+
+#Splitting the dataset into test and train
+set.seed(12345)
+n<- nrow(data1)
+id<-sample(1:n,floor(n*0.6))
+train<-data1[id,]
+test<-data1[-id,]
+
+#Scaling the data 
+library(caret)
+
+scaler<- preProcess(train)
+trainS<-predict(scaler,train)
+testS<-predict(scaler,test)
+```
+
+
+## 2
+
+Compute a linear regression model from the training data, estimate training and test MSE and comment on which variables contribute significantly to the model.
+
+```{r}
+#creating the linear regression model 
+
+model<-lm(motor_UPDRS ~ . -1 , data = trainS)
+
+
+# MSE of the model
+MSE_model<-mean(model$residuals^2)  #0.8785431
+
+#train data 
+prediction<- predict(model, newdata = trainS)
+
+mean((trainS$motor_UPDRS-prediction)^2)   #0.8785431
+
+
+#test data
+prediction2<- predict(model, newdata = testS)
+
+mean((testS$motor_UPDRS-prediction2)^2)   #0.9354477
+
+
+#The variables that contribute significantly to the model:
+summary(model)
+```
+
+Upon comparing the t-value and p-value, the variables that are staistically significant are: 
+Jitter.Abs. ,Shimmer , Shimmer.APQ5, Shimmer.APQ11, NHR, HNR, DFA, PPE
+
+
+## 3
+
+Implement 4 following functions by using basic R commands only (no external packages):
+
+### a
+
+Loglikelihood function that for a given parameter vector $\theta$ and dispersion $\sigma$ computes the log-likelihood function $logP(T|\theta,\sigma)$ for the stated model and the training data
+
+```{r}
+x<-as.matrix(trainS[,-1])
+n<-nrow(trainS)
+y <- as.matrix(trainS$motor_UPDRS)
+
+loglikelihood <- function(theta , dispersion){
+  #theta<-t(as.matrix(theta))
+  
+  x<-as.matrix(trainS[,-1])
+  n<-nrow(trainS)
+  y <- as.matrix(trainS$motor_UPDRS)
+  
+  #values<-c()
+  #for (i in 1:nrow(trainS)){
+  #  b<-as.matrix(a[i,])
+  #  values[i]<- (trainS$motor_UPDRS[i]- theta%*%(t(b)))^2
+  #}
+  
+  final<- (-n / 2 * log(2 * pi * dispersion^2) - (1 / (2 * dispersion^2)) * sum((y - x %*% theta)^2))
+  
+  #value<-sum(as.matrix(trainS$motor_UPDRS)-theta%*%t(b))^2
+  
+  
+  #c<-(value)/(2*(dispersion^2))
+  
+  #d<- n * log(sqrt(2*pi)*dispersion)
+  
+  return(final)
+  
+}
+
+```
+
+### b
+
+Ridge function that for given vector $\theta$, scalar $\sigma$ and scalar $\lambda$ uses
+function from 3a and adds up a Ridge penalty $\lambda ||\theta||^2$ 2 to the minus log-likelihood
+
+```{r}
+ridge <- function(theta, lambda){
+  
+  sigma <- tail(theta,1)
+  theta <- theta[-17]
+  
+  value<- - loglikelihood(theta,sigma) #What is the meaning of minus log-likelihood? When to use what? 
+  
+  a<- lambda * sum(theta^2)
+  
+  return(value + a)
+}
+```
+
+### c
+
+RidgeOpt function that depends on scalar $\lambda$ , uses function from 3b
+and function optim() with method=”BFGS” to find the optimal $\theta$ and $\sigma$
+for the given $\lambda$.
+
+```{r}
+RidgeOpt<- function(lambda){
+  
+  #intial_theta<-rep(0,16)
+  #intial_dispersion<-0.5
+  
+  #opt<- function(param){
+  #  ridge(param[1:length(param) - 1],param[length(param)],lambda)
+  #}
+
+  return(optim(rep(1,17),fn = ridge,lambda = lambda, method = "BFGS"))
+}
+```
+
+### d
+
+DF function that for a given scalar  $\lambda$ computes the degrees of freedom of the Ridge model based on the training data.
+
+```{r}
+I <- as.matrix(diag(16))
+
+DF <- function(lambda){
+  r<-x%*%solve((t(x)%*%x + lambda*I),t(x))
+  
+  sum(diag(r))
+
+  }
+```
+
+## 4
+
+By using function RidgeOpt, compute optimal $\theta$ parameters for $\lambda$ = 1, $\lambda$ =
+100 and $\lambda$ = 1000. Use the estimated parameters to predict the motor_UPDRS values for training and test data and report the training and test MSE values. Which penalty parameter is most appropriate among the selected ones? Compute and compare the degrees of freedom of these models and make appropriate conclusions.
+
+```{r}
+opt_1<-RidgeOpt(1)
+opt_2<-RidgeOpt(100)
+opt_3<-RidgeOpt(1000)
+
+
+pred_1_train<-as.matrix(trainS[,-1])%*%as.matrix(opt_1$par[-17])
+pred_1_test<-as.matrix(testS[,-1])%*%as.matrix(opt_1$par[-17])
+pred_2_train<-as.matrix(trainS[,-1])%*%as.matrix(opt_2$par[-17])
+pred_2_test<-as.matrix(testS[,-1])%*%as.matrix(opt_2$par[-17])
+pred_3_train<-as.matrix(trainS[,-1])%*%as.matrix(opt_3$par[-17])
+pred_3_test<-as.matrix(testS[,-1])%*%as.matrix(opt_3$par[-17])
+
+
+
+mean((trainS$motor_UPDRS-pred_1_train)^2)
+mean((trainS$motor_UPDRS-pred_2_train)^2)
+mean((trainS$motor_UPDRS-pred_3_train)^2)
+
+mean((testS$motor_UPDRS-pred_1_test)^2)
+mean((testS$motor_UPDRS-pred_2_test)^2)
+mean((testS$motor_UPDRS-pred_3_test)^2)
+
+DF(1)
+DF(100)
+DF(1000)
+
+```
+
+For the training data, we can see that for 𝜆= 1 , the MSE is the least while for the test data, 𝜆= 1 and 𝜆= 100 are 
+almost the same but lower than 𝜆= 1000. 
+So the most appropropiate one is 𝜆= 1. 
+
+The DoF for 𝜆= 1 is the highest while for 𝜆= 1000, it is the lowest. This implies that there has been more regularization for 
+𝜆=1000 which makes the model more robust and less sensitive to individual data points while 𝜆=1 has lesser regularization
+which makes the model more flexible and fits the training data better. 
+
+So based on the above analysis of DoF and the MSE, 𝜆=1 would be ideal. 
+
+\pagebreak
+
+# Assignment 3. Logistic regression and basis function expansion
+
+```{r, include=FALSE}
+set.seed(12345)
+df3 <- read.csv("pima-indians-diabetes.csv", header = FALSE)
+colnames(df3) <- c("preg", "plasma", "bloodp", "triceps", "serum", "bmi", "pedigree", "age", "diabetes")
+```
+
+This assignment involves a data file about the onset of diabetes within 5 years in Pima Indians given medical details, the variables are (in order);
+
+1. Number of times pregnant.
+2. Plasma glucose concentration a 2 hours in an oral glucose tolerance test.
+3. Diastolic blood pressure (mm Hg).
+4. Triceps skinfold thickness (mm).
+5. 2-Hour serum insulin (mu U/ml).
+6. Body mass index (weight in kg/(height in m)^2).
+7. Diabetes pedigree function.
+8. Age (years).
+9. Diabetes (0=no or 1=yes).
+
+
+## 1.
+
+*Make a scatterplot showing a Plasma glucose concentration on Age where observations are colored by Diabetes levels. Do you think that Diabetes is easy to classify by a standard logistic regression model that uses these two variables as features? Motivate your answer.*
+
+```{r, cache = TRUE}
+p31 <- ggplot(df3, aes(x = plasma, y = age, color = as.factor(diabetes))) + geom_point() + theme_bw() + 
+  labs(y = "Age", x = "Plasma glucose concentration", color = "Diabetes")
+p31
+```
+
+A standard logistic regression model would not classify diabetes well using these two variables. Reason being that the two groups are very mixed, and observations from both groups are scattered at all levels. This would result in the r = 0.5 classifying wrong for several observations.
+
+## 2.
+
+*Train a logistic regression model with $y$ =Diabetes as target $x_1$ =Plasma glucose concentration and $x_2$ =Age as features and make a prediction for all observations by using $r$ = 0.5 as the classification threshold. Report the probabilistic equation of the estimated model (i.e., how the target depends on the features and the estimated model parameters probabilistically). Compute also the training misclassification error and make a scatter plot of the same kind as in step 1 but showing the predicted values of Diabetes as a color instead. Comment on the quality of the classification by using these results.*
+
+```{r, cache = TRUE}
+set.seed(12345)
+# split data into train/test
+n <- nrow(df3)
+id <- sample(1:n, floor(n*0.70))
+train <- df3[id,]
+test <- df3[-id,]
+
+# Training logistic regression model
+logmod <- glm(diabetes ~ plasma + age, data = train, family = "binomial")
+
+# Probabilistic equation of the estimated model
+coef(logmod)
+
+# Prediction for all observations
+diabetesPred <- predict(logmod, newdata = df3, type = "response")
+diabetesPred05 <- ifelse(diabetesPred >= 0.5,1,0)
+df3$diabetesPred <- diabetesPred05
+
+# Training misclassification error
+# misclassification rate = sum(off diag) / sum(all)
+log_confmat <- table(df3$diabetes, df3$diabetesPred)
+totsum <- sum(log_confmat) # sum all
+offdiagsum <- log_confmat[1,2] + log_confmat[2,1] # sum off diag
+
+log_misclass_error <- (offdiagsum) / totsum # misclassification error
+
+# Scatter plot of same kind as in step 1 but predicted values instead
+p32 <- ggplot(df3, aes(x = plasma, y = age, color = as.factor(diabetesPred))) + geom_point() + theme_bw() + 
+  labs(y = "Age", x = "Plasma glucose concentration", color = "Diabetes")
+p32
+
+result3 <- as.data.frame(cbind(coef(logmod)[1], coef(logmod)[2], coef(logmod)[3], log_misclass_error, totsum, offdiagsum))
+colnames(result3) <- c("Intercept", "Beta1", "Beta2", "Missclassification error", "Total sum", "Offdiag sum")
+knitr::kable(result3, row.names = FALSE)
+```
+
+The probabilistic equation of the estimated model: $p(x)=P(Y=1 \mid x)=\frac{1}{1+\exp \left(-\beta_0-\beta_i x\right)} = 1/(1+exp(-(-6.01839056) - 0.03368988 \cdot plasma - 0.03633943 \cdot age)))$
+
+It is very easy to see how the binary classifier has worked. The threshold of r = 0.5 is portrayed as the hard line in where the predictions change from no predicted diabetes to predicted diabetes.
+
+This simple classifying would not be good practice to use for classifying patients due to the misclassification error being 25.91%, meaning nearly 1/4th of all cases are either false positives or false negatives.
+
+## 3.
+*Use the model estimated in step 2 to a) report the equation of the decision boundary between the two classes b) add a curve showing this boundary to the scatter plot in step 2. Comment whether the decision boundary seems to catch the data distribution well.*
+
+The equation of the decision boundary, alas when the two classes are equally probable is where $g(x) = 1-g(x)$ which for logistic regression means where $\theta^T x= 0$ [@lindholm2022machine], or for our case where $(-6.01839056) - 0.03368988 \cdot plasma - 0.03633943 \cdot age = 0$.
+
+```{r, caption = "Scatterplot with decision boundary plotted"}
+# Plot the decision boundary
+p33 <- p32 + stat_function(fun = function(x){((-coef(logmod)[1]-coef(logmod)[2]*x)) / coef(logmod)[3]}, color = "black") + ylim(15,90)
+p33
+```
+
+The plotted decision boundary [@DeBoSO] runs right between the classes, as expected.
+
+## 4.
+*Make same kind of plots as in step 2 but use thresholds $r=0.2$ and $r=0.8$. By using these plots, comment on what happens with the prediction when value $r$ value changes.*
+```{r, cache = TRUE}
+# Prediction for all observations using r = 0.2 and r = 0.8
+diabetesPred02 <- ifelse(diabetesPred >= 0.2,1,0)
+df3$diabetesPred02 <- diabetesPred02
+
+diabetesPred08 <- ifelse(diabetesPred >= 0.8,1,0)
+df3$diabetesPred08 <- diabetesPred08
+
+
+p341 <- ggplot(df3, aes(x = plasma, y = age, color = as.factor(diabetesPred02))) + geom_point() + theme_bw() + 
+  labs(y = "Age", x = "Plasma glucose concentration", color = "Diabetes")
+p341
+
+p342 <- ggplot(df3, aes(x = plasma, y = age, color = as.factor(diabetesPred08))) + geom_point() + theme_bw() + 
+  labs(y = "Age", x = "Plasma glucose concentration", color = "Diabetes")
+p342
+```
+
+When $r$ changes, the subsequent classification either increases or decreases the weight for the classes. A lower threshold for $r$ gives a plot that classifies more observations as having diabetes, and a higher threshold classifies more observations as non-diabetes.
+
+## 5.
+* Perform a basis function expansion trick by computing new features $z_1=x_1^4, z_2=x^3_1x_2, z_3=x^2_1x^2_2, z_4 = x_1x_2^3, z_5 = x^4_2$, adding them to the data set and then computing a logistic regression model with $y$ as target and $x_1,x_2,z_1,...z_5$ as features. Create a scatterplot of the same kind as in step 2 for this model and compute the training misclassification rate. What can you say about the quality of this model compared to the previous logistic regression model? How have the basis expansion trick affected the shape of the decision boundary and the prediction accuracy?*
+
+```{r, cache = TRUE}
+# Computing new features
+df3$z1 <- df3[,1]^4
+df3$z2 <- df3[,1]^3 * df3[,2]
+df3$z3 <- df3[,1]^2 * df3[,2]^2
+df3$z4 <- df3[,1] * df3[,2]^3
+df3$z5 <- df3[,2]^4
+
+logmod_exp <- glm(diabetes ~ preg + plasma + z1 + z2 + z3 + z4 + z5, data = df3, family = "binomial")
+
+
+# Prediction for all observations for expansion trick
+diabetesPred_exp <- predict(logmod_exp, newdata = df3, type = "response")
+diabetesPred_exp <- ifelse(diabetesPred_exp >= 0.5,1,0)
+df3$diabetesPred_exp <- diabetesPred_exp
+
+# Training misclassification error for expansion trick
+# misclassification rate = sum(off diag) / sum(all)
+log_confmat_exp <- table(df3$diabetes, df3$diabetesPred_exp)
+totsum_exp <- sum(log_confmat_exp) # sum all
+offdiagsum_exp <- log_confmat_exp[1,2] + log_confmat_exp[2,1] # sum off diag
+
+log_misclass_error_exp <- (log_confmat_exp[1,2] + log_confmat_exp[2,1]) / sum(log_confmat_exp)
+
+# Scatter plot of same kind as in step 1 but predicted values instead
+p35 <- ggplot(df3, aes(x = plasma, y = as.factor(preg), color = as.factor(diabetesPred_exp))) + geom_point() + theme_bw() + 
+  labs(y = "Amount of pregnancies", x = "Plasma glucose concentration", color = "Diabetes")
+p35
+
+result3_exp <- as.data.frame(cbind(coef(logmod_exp)[1], coef(logmod_exp)[2], coef(logmod_exp)[3], log_misclass_error_exp, totsum_exp, offdiagsum_exp))
+colnames(result3_exp) <- c("Intercept", "Beta1", "Beta2", "Missclassification error", "Total sum", "Offdiag sum")
+knitr::kable(result3, row.names = FALSE)
+
+```
+
+This model is worse than the first one. Reason being that the training misclassification error is pretty much the same, however the model is severely more complicated than the first one and therefore complicates the relationship between dependent and response variables without any true benefit, only making it harder to interpret the coefficients. Due to the non-linear nature of the transformations, the decision boundary appears to be non-linear.
+
+
+
+
+
+# References 
+
+<div id="refs"></div>
+
+
+
+
+# Appendix
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
+
+
+

@@ -1,0 +1,767 @@
+---
+title: "Computer lab 1 block 2"
+date: "`r Sys.Date()`"
+author: "Johannes Hedström, Mikael Montén & Siddhesh Sreedar"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: yes
+    number_sections: yes
+  html_document:
+    df_print: paged
+geometry: top=100pt,bottom=100pt,left=68pt,right=66pt
+header-includes:
+- \usepackage{float}
+- \usepackage{longtable}
+- \usepackage{caption}
+- \usepackage{fancyhdr}
+- \usepackage{titling}
+- \renewcommand{\headrulewidth}{0pt}
+- \renewcommand{\and}{\\}
+- \pretitle{\centering\vspace{0cm}{732A99/732A68/ TDDE01 Machine Learning \par}\vspace{5cm}\Huge\textbf}
+- \posttitle{\vspace{1cm}\large\textbf{}\par}
+- \preauthor{\centering\vspace{4cm}\normalsize}
+- \postauthor{\par\vspace{2cm}}
+- \predate{\centering{\normalsize STIMA \\
+  Department of Computer and Information Science \\ Linköpings universitet \par}}
+- \postdate{\par\vspace{0cm}}
+- \raggedbottom
+#bibliography: ref.bib
+---
+
+
+<!-- page number pos -->
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\pagestyle{fancy}
+
+<!-- no page nr on first page  -->
+\pagenumbering{gobble}
+
+<!-- Anger sidbrytning -->
+\clearpage
+
+<!-- creating the table of contents -->
+\setcounter{tocdepth}{3}
+\tableofcontents
+
+<!-- new page -->
+\clearpage
+
+<!-- starting the count on 1 after the contents -->
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning=FALSE, fig.width = 5, fig.height = 3, fig.align = 'center')
+set.seed(12345)
+```
+
+
+```{r}
+# packages
+library(glmnet)
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(randomForest)
+
+
+```
+
+# Contribution of work
+
+Mikael, Siddhesh and Johannes collaborated all the assignments and discussed our results. 
+
+
+# Ensemble methods
+
+Your task is to learn some random forests using the function randomForest from the R package randomForest. The training data is produced by running the following R code:
+
+
+```{r,echo=TRUE}
+
+x1<-runif(100)
+x2<-runif(100)
+trdata<-cbind(x1,x2)
+y<-as.numeric(x1<x2)
+trlabels<-as.factor(y)
+```
+
+
+The task is therefore classifying Y from X1 and X2, where Y is binary and X1 and X2 continuous. You should learn a random forest with 1, 10 and 100 trees, which you can do by setting the argument ntree to the appropriate value. Use nodesize = 25 and keep.forest = TRUE. The latter saves the random forest learned. You need it because you should also compute the misclassification error in the following test dataset (use the function predict for this purpose):
+
+
+```{r, echo=TRUE, fig.cap = "Generated points colored by class"}
+set.seed(1234)
+x1<-runif(1000)
+x2<-runif(1000)
+tedata<-cbind(x1,x2)
+y<-as.numeric(x1<x2)
+telabels<-as.factor(y)
+plot(x1,x2,col=(y+1))
+
+```
+
+You can see that thee is a clear boundary between the 2 classes and it looks to be linear.
+
+\pagebreak
+
+## 1.
+
+Repeat the procedure above for 1000 training datasets of size 100 and report the mean and variance of the misclassification errors. In other words, create 1000 training datasets of size 100, learn a random forest from each dataset, and compute the misclassification error in the same test dataset of size 1000. Report results for when the
+random forest has 1, 10 and 100 trees.
+
+
+```{r}
+# creating 1000 datasets and making 3 random forest model for each dataset
+
+df <- data.frame('1'=c(0),'10'=c(0),'100'=c(0))
+df <- df[-1,]
+
+for(i in 1:1000){
+  
+x1<-runif(100)
+x2<-runif(100)
+trdata<-cbind(x1,x2)
+y<-as.numeric(x1<x2)
+trlabels<-as.factor(y)
+
+
+ vec <- c()
+ k <- 1
+# creating the models
+for (j in c(1,10,100)) {
+  
+ mod <-  randomForest(x=trdata, y=trlabels, nodesize = 25,keep.forest =TRUE, ntree = j)
+ 
+ vec[k] <- 1- (sum(diag(table(predict(mod,tedata ),telabels )))/1000)
+ 
+ k <- k + 1
+}
+
+df <- rbind(df,vec)
+
+}
+
+
+colnames(df) <- c('1','10','100')
+
+knitr::kable(head(df,10),caption = 'Misclassification error for the first 10 samples' )
+
+
+knitr::kable(colMeans(df), caption = 'Mean of each random forest size for the 1000 samples')
+knitr::kable(c(var(df[,1]),var(df[,2]),var(df[,3])), caption = 'Variance of each random forest size for the 1000 samples')
+
+
+
+```
+
+The random forest models with 100 trees have the lowest mean in misclassification error, so the more trees the better, we can also se that the variance is decreasing! However, there seems to be a marginal improvement between 10 and 100 trees.
+
+## 2.
+
+Repeat the exercise above but this time use the condition (x1<0.5) instead of (x1<x2) when producing the training and test datasets.
+
+
+```{r}
+# creating 1000 datasets and making 3 random forest model for each dataset
+
+df2 <- data.frame('1'=c(0),'10'=c(0),'100'=c(0))
+df2 <- df2[-1,]
+
+set.seed(1234)
+x1<-runif(1000)
+x2<-runif(1000)
+tedata<-cbind(x1,x2)
+y<-as.numeric(x1<0.5)
+telabels<-as.factor(y)
+
+for(i in 1:1000){
+  
+x1<-runif(100)
+x2<-runif(100)
+trdata<-cbind(x1,x2)
+y<-as.numeric(x1<0.5)
+trlabels<-as.factor(y)
+
+
+ vec <- c()
+ k <- 1
+# creating the models
+for (j in c(1,10,100)) {
+  
+ mod <-  randomForest(x=trdata, y=trlabels, nodesize = 25,keep.forest =TRUE, ntree = j)
+ 
+ vec[k] <- 1- (sum(diag(table(predict(mod,tedata ),telabels )))/1000)
+ 
+ k <- k + 1
+}
+
+df2 <- rbind(df2,vec)
+
+}
+
+
+colnames(df2) <- c('1','10','100')
+
+knitr::kable(head(df2,10),caption = 'Misclassification error for the first 10 samples' )
+
+
+knitr::kable(colMeans(df2), caption = 'Mean of each random forest size for the 1000 samples')
+
+knitr::kable(c(var(df2[,1]),var(df2[,2]),var(df2[,3])), caption = 'Variance of each random forest size for the 1000 samples')
+```
+
+Means are lower than for the first iteration of the exercise, however variances has increased for all three.
+
+
+## 3.
+
+Repeat the exercise above but this time use the condition ((x1<0.5 & x2<0.5)| (x1>0.5 & x2>0.5)) instead of (x1<x2) when producing the training and test datasets. Unlike above, use nodesize = 12 for this exercise.
+
+
+
+```{r}
+# creating 1000 datasets and making 3 random forest model for each dataset
+
+df3 <- data.frame('1'=c(0),'10'=c(0),'100'=c(0))
+df3 <- df[-1,]
+
+set.seed(1234)
+x1 <- runif(1000)
+x2 <- runif(1000)
+tedata<-cbind(x1,x2)
+y <- as.numeric(((x1<0.5 & x2<0.5)| (x1>0.5 & x2>0.5)))
+telabels<-as.factor(y)
+
+for(i in 1:1000){
+  
+x1<-runif(100)
+x2<-runif(100)
+trdata<-cbind(x1,x2)
+y<-as.numeric(((x1<0.5 & x2<0.5)| (x1>0.5 & x2>0.5)))
+trlabels<-as.factor(y)
+
+
+ vec <- c()
+ k <- 1
+# creating the models
+for (j in c(1,10,100)) {
+  
+ mod <-  randomForest(x=trdata, y=trlabels, nodesize = 12,keep.forest =TRUE, ntree = j)
+ 
+ vec[k] <- 1- (sum(diag(table(predict(mod,tedata ),telabels )))/1000)
+ 
+ k <- k + 1
+}
+
+df3 <- rbind(df3,vec)
+
+}
+
+
+colnames(df3) <- c('1','10','100')
+
+knitr::kable(head(df3,10),caption = 'Misclassification error for the first 10 samples' )
+
+
+knitr::kable(colMeans(df3), caption = 'Mean of each random forest size for the 1000 samples')
+knitr::kable(c(var(df3[,1]),var(df3[,2]),var(df3[,3])), caption = 'Variance of each random forest size for the 1000 samples')
+```
+
+Means and variances are situated somewhere in between the general range for exercise 1 and exercise 2 for all amounts of trees.
+
+## 4
+
+Answer the following questions:
+
+### a)
+
+*What happens with the mean error rate when the number of trees in the random forest grows? Why?*
+
+When increasing the number of trees we reduce the variance(different observation used) which is an effect from bagging and the correlations(different splits between the trees), and this will result in better predictions and lower mean error rate. The increasing of number of trees therefore makes the predictions more robust.
+
+### b)
+
+*The third dataset represents a slightly more complicated classification problem than the first one. Still, you should get better performance for it when using sufficient trees in the random forest. Explain why you get better performance.*
+
+
+```{r, echo=TRUE, fig.cap = "Generated points colored by class"}
+set.seed(1234)
+x1<-runif(1000)
+x2<-runif(1000)
+tedata<-cbind(x1,x2)
+y<-as.numeric(((x1<0.5 & x2<0.5) | (x1>0.5 & x2>0.5)))
+telabels<-as.factor(y)
+plot(x1,x2,col=(y+1))
+
+```
+
+
+We get a better performance as the boundary in the first one is linear and to make tree models to fit this problem is hard, we´ll need to have a really deep tree or several deep trees as in random forest and it will probably never be really good. This complicated problem have more constant boundary for x2 which then switches after a certain value of x1, which makes it non-linear. When making several trees in random forest we will get lots of trees with different splits and all together
+
+The decrease of nodesize might also improve the model for the more complex problem as it can grow larger trees, less observations needed in a node to create a split(this could also create overfit is nodesize is too small). 
+
+
+
+\pagebreak
+
+# Mixture models
+
+*Your task is to implement the EM algorithm for Bernoulli mixture model. Please use the R template below to solve the assignment. Then, use your implementation to show what happens when your mixture model has too few and too many clusters, i.e. set M = 2, 3, 4 and compare results. Please provide a short explanation as well. A Bernoulli mixture model is*
+
+$$p(x) = \sum_{m=1}^M \pi_m Bern(x|\mu_m)$$
+
+where $x = (x1, . . . , x_D)$ is a D-dimensional binary random vector, $\pi m = p(y = m)$ and
+
+$$Bern(x|\mu_m) = \prod_{d=1}^D \mu^{x_d}_{m,d}(1-\mu_{m,d})^{(1-x_d)} $$
+
+where $\mu_m = (\mu_{m,1}, . . . , \mu{m,D})$ is a D-dimensional vector of probabilities. As usual, the log
+likelihood of the dataset $\{x_i\}^n_{i=1}$ is 
+
+$$\sum_{i=1}^n log p(x_i)$$
+
+Finally, in the EM algorithm, the parameter updates for the Bernoulli mixture model are the same as for the Gaussian mixture model (see Equations 10.16a,b in the lecture slides).
+
+
+
+
+
+```{r, fig.cap = "True Mu values"}
+set.seed(1234567890)
+
+max_it <- 100 # max number of EM iterations
+min_change <- 0.1 # min change in log lik between two consecutive iterations
+n=1000 # number of training points
+D=10 # number of dimensions
+
+x <- matrix(nrow=n, ncol=D) # training data
+true_pi <- vector(length = 3) # true mixing coefficients
+true_mu <- matrix(nrow=3, ncol=D) # true conditional distributions
+
+true_pi=c(1/3, 1/3, 1/3)
+true_mu[1,]=c(0.5,0.6,0.4,0.7,0.3,0.8,0.2,0.9,0.1,1)
+true_mu[2,]=c(0.5,0.4,0.6,0.3,0.7,0.2,0.8,0.1,0.9,0)
+true_mu[3,]=c(0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5)
+
+plot(true_mu[1,], type="o", col="blue", ylim=c(0,1))
+points(true_mu[2,], type="o", col="red")
+points(true_mu[3,], type="o", col="green")
+```
+
+
+
+```{r, cache = TRUE}
+set.seed(1234567890)
+# Producing the training data
+for(i in 1:n) {
+  m <- sample(1:3,1,prob=true_pi)
+for(d in 1:D) {
+  x[i,d] <- rbinom(1,1,true_mu[m,d])
+  }
+}
+
+M=3 # number of clusters
+w <- matrix(nrow=n, ncol=M) # weights
+pi <- vector(length = M) # mixing coefficients
+mu <- matrix(nrow=M, ncol=D) # conditional distributions
+llik <- vector(length = max_it) # log likelihood of the EM iterations
+
+# Random initialization of the parameters
+pi <- runif(M,0.49,0.51)
+pi <- pi / sum(pi)
+
+
+
+for(m in 1:M) {
+mu[m,] <- runif(D,0.49,0.51)
+  }
+```
+
+
+EM algorithm:
+
+**Learn the GMM**
+
+**Data**: Unlabeled training data $\mathcal{T}=\left\{\mathbf{x}_i\right\}_{i=1}^n$, number of clusters $M$.
+
+**Result**: Gaussian mixture model
+
+**Initialize** $\widehat{\boldsymbol{\theta}}=\left\{\widehat{\pi}_m, \widehat{\boldsymbol{\mu}}_m, \widehat{\boldsymbol{\Sigma}}_m\right\}_{m=1}^M$
+
+**repeat**
+
+For each $\mathbf{x}_i$ in $\left\{\mathbf{x}_i\right\}_{i=1}^n$, compute the prediction $p\left(y \mid \mathbf{x}_i, \widehat{\boldsymbol{\theta}}\right)$ according to (10.5) using the current parameter estimates $\widehat{\boldsymbol{\theta}}$.
+
+Update the parameter estimates $\widehat{\boldsymbol{\theta}} \leftarrow\left\{\widehat{\pi}_m, \widehat{\boldsymbol{\mu}}_m, \widehat{\boldsymbol{\Sigma}}_m\right\}_{m=1}^M$ according to (10.16)
+
+**until** convergence
+
+Predict as QDA, Method 10.1
+
+10.5 (Expectation):
+
+$$w_{i,m}(x_i) = \frac{\pi_m Bern(x_i|\mu_m)}{\sum_{m=1}^M \pi_m Bern(x_i|\mu_m)}$$
+
+10.16(a,b)(Maximization):
+
+10.16a:
+$$\widehat{\pi}_m=\frac{1}{n} \sum_{i=1}^n w_i(m)$$
+
+
+10.16b:
+
+$$\widehat{\boldsymbol{\mu}}_m=\frac{1}{\sum_{i=1}^n w_i(m)} \sum_{i=1}^n w_i(m) \mathbf{x}_i $$
+
+
+
+$$\text { where } w_i(m)=p\left(y_i=m \mid \mathbf{x}_i, \widehat{\boldsymbol{\theta}}\right)$$
+First step is to create a Bernoulli function that is used to update the weights.
+
+```{r, cache = TRUE, echo = TRUE}
+# Function for the Bernoulli product
+bernoulli <- function(x,mu,M){
+  
+  mat <- matrix(0,ncol = M,nrow = nrow(x))
+  for (i in 1:nrow(x)) { # for every x and every cluster calculate the prod over the dimensions
+    
+  for(m in 1:M){
+  mat[i,m]<- prod(mu[m,]^x[i,] * ( 1 - mu[m,])^(1-x[i,]))
+  
+    }
+  }
+  mat
+}
+
+w <- bernoulli(x,mu,M)
+
+
+```
+
+
+```{r}
+set.seed(1234567890)
+# Producing the training data
+for(i in 1:n) {
+  m <- sample(1:3,1,prob=true_pi)
+for(d in 1:D) {
+  x[i,d] <- rbinom(1,1,true_mu[m,d])
+  }
+}
+
+M=3 # number of clusters
+w <- matrix(nrow=n, ncol=M) # weights
+pi <- vector(length = M) # mixing coefficients
+mu <- matrix(nrow=M, ncol=D) # conditional distributions
+llik <- vector(length = max_it) # log likelihood of the EM iterations
+
+# Random initialization of the parameters
+pi <- runif(M,0.49,0.51)
+pi <- pi / sum(pi)
+
+
+
+for(m in 1:M) {
+mu[m,] <- runif(D,0.49,0.51)
+}
+```
+
+Here we implement the Bernoulli function in the code as the E-step and the M-step is computed by log likelihood.
+
+```{r, cache = TRUE, echo = TRUE}
+for(it in 1:max_it) {
+
+#points(mu[4,], type="o", col="yellow")
+Sys.sleep(0.1)
+
+# E-step: Computation of the weights(Expectation)
+w <- bernoulli(x,mu,M)
+
+p_x <- (w*pi)/rowSums(w*pi) # calculate probabilities
+
+
+#Log likelihood computation.(Maximization)
+llik[it] <- sum(log(rowSums(w*pi)))
+
+
+cat("iteration: ", it, "log likelihood: ", llik[it], "\n")
+flush.console()
+
+
+# Stop if the log likelihood has not changed significantly
+if(it>=2 && abs((llik[it] - llik[it-1])) < min_change){
+  break()
+}
+#M-step: ML parameter estimation from the data and weights
+
+#10.16.a
+pi <- (1/n) * colSums(p_x)
+
+
+# 10.16b
+for (i in 1:M) {
+  for(j in 1:ncol(mu)){
+  mu_hat <-  sum(p_x[,i] * x[,j])
+  
+  mu[i,j] <- mu_hat / colSums(p_x)[i]
+    }
+  }
+}
+```
+
+```{r, fig.cap = "Estimated Mu values for M = 3"}
+plot(mu[1,], type="o", col="blue", ylim=c(0,1))
+points(mu[2,], type="o", col="red")
+points(mu[3,], type="o", col="green")
+
+pi_1 <- pi
+l1 <- llik
+```
+
+Comparing this figure with Figure 3 shows that each of the 3 $\mu$ values seems to have converged to a good estimate with respect to the true values.
+
+
+```{r, fig.cap = "Likelihood value for each iteration"}
+pi
+mu
+true_mu
+plot(llik[1:it], type="o")
+```
+
+
+The tables produce confirm what the figure says, that all three true $\mu$ values are found when looking for three clusters of mu.
+
+Next step is to do the same computations but for $M = 2$ and $M = 4$.
+
+```{r, echo = FALSE}
+set.seed(1234567890)
+# Producing the training data
+for(i in 1:n) {
+  m <- sample(1:3,1,prob=true_pi)
+for(d in 1:D) {
+  x[i,d] <- rbinom(1,1,true_mu[m,d])
+  }
+}
+
+M=4 # number of clusters
+w <- matrix(nrow=n, ncol=M) # weights
+pi <- vector(length = M) # mixing coefficients
+mu <- matrix(nrow=M, ncol=D) # conditional distributions
+llik <- vector(length = max_it) # log likelihood of the EM iterations
+
+# Random initialization of the parameters
+pi <- runif(M,0.49,0.51)
+pi <- pi / sum(pi)
+
+
+
+for(m in 1:M) {
+mu[m,] <- runif(D,0.49,0.51)
+}
+
+for(it in 1:max_it) {
+  
+Sys.sleep(0.1)
+
+# E-step: Computation of the weights(Expectation)
+# Your code here
+
+w <- bernoulli(x,mu,M)
+
+#p_x <- matrix(0,ncol = M,nrow=nrow(x))
+
+
+p_x <- (w*pi)/rowSums(w*pi)
+
+
+#Log likelihood computation.(Maximization)
+# Your code here
+
+
+# log-likelihood 
+
+
+
+llik[it] <- sum(log(rowSums(w*pi)))
+
+cat("iteration: ", it, "log likelihood: ", llik[it], "\n")
+flush.console()
+
+
+# Stop if the log likelihood has not changed significantly
+# Your code here
+
+if(it>=15 && abs((llik[it] - llik[it-1])) < min_change){
+  break()
+}
+#M-step: ML parameter estimation from the data and weights
+# Your code here
+
+#10.16.a
+pi <- (1/n) * colSums(p_x)
+
+
+# 10.16b
+
+for (i in 1:M) {
+  for(j in 1:ncol(mu)){
+  mu_hat <-  sum(p_x[,i] * x[,j])
+  
+  mu[i,j] <- mu_hat / colSums(p_x)[i]
+}
+}
+}
+```
+
+```{r, fig.cap = "Estimated Mu values for M = 4"}
+pi_2 <- pi
+plot(mu[1,], type="o", col="blue", ylim=c(0,1))
+  points(mu[2,], type="o", col="red")
+  points(mu[3,], type="o", col="green")
+  points(mu[4,], type="o", col="yellow")
+l2 <- llik
+
+```
+
+
+```{r}
+mu
+true_mu
+```
+
+Two of the three true mu values are found when looking for four clusters of $\mu$, the other two of the clusters seems to be a combination of the third true mu. 
+
+
+
+```{r, echo = FALSE}
+
+set.seed(1234567890)
+# Producing the training data
+for(i in 1:n) {
+  m <- sample(1:3,1,prob=true_pi)
+for(d in 1:D) {
+  x[i,d] <- rbinom(1,1,true_mu[m,d])
+  }
+}
+
+M=2 # number of clusters
+w <- matrix(nrow=n, ncol=M) # weights
+pi <- vector(length = M) # mixing coefficients
+mu <- matrix(nrow=M, ncol=D) # conditional distributions
+llik <- vector(length = max_it) # log likelihood of the EM iterations
+
+# Random initialization of the parameters
+pi <- runif(M,0.49,0.51)
+pi <- pi / sum(pi)
+
+
+
+for(m in 1:M) {
+mu[m,] <- runif(D,0.49,0.51)
+}
+
+for(it in 1:max_it) {
+  
+ # points(mu[3,], type="o", col="green")
+  #points(mu[4,], type="o", col="yellow")
+Sys.sleep(0.1)
+
+# E-step: Computation of the weights(Expectation)
+# Your code here
+
+w <- bernoulli(x,mu,M)
+
+#p_x <- matrix(0,ncol = M,nrow=nrow(x))
+
+
+p_x <- (w*pi)/rowSums(w*pi)
+
+
+#Log likelihood computation.(Maximization)
+# Your code here
+
+
+# log-likelihood 
+
+
+
+llik[it] <- sum(log(rowSums(w*pi)))
+
+cat("iteration: ", it, "log likelihood: ", llik[it], "\n")
+flush.console()
+
+
+# Stop if the log likelihood has not changed significantly
+# Your code here
+
+if(it>=15 && abs((llik[it] - llik[it-1])) < min_change){
+  break()
+}
+#M-step: ML parameter estimation from the data and weights
+# Your code here
+
+#10.16.a
+pi <- (1/n) * colSums(p_x)
+
+
+# 10.16b
+
+for (i in 1:M) {
+  for(j in 1:ncol(mu)){
+  mu_hat <-  sum(p_x[,i] * x[,j])
+  
+  mu[i,j] <- mu_hat / colSums(p_x)[i]
+}
+}
+}
+```
+
+```{r, fig.cap = "Estimated Mu values for M = 2"}
+pi_3 <- pi
+
+plot(mu[1,], type="o", col="blue", ylim=c(0,1))
+  points(mu[2,], type="o", col="red")
+l23<- llik
+
+```
+
+\pagebreak
+```{r}
+mu
+true_mu
+```
+
+Two of the three true mu values are found when looking for 2 clusters of $\mu$. 
+
+```{r}
+
+l_df <- data.frame(c(max(l1[l1 < 0]), 22),c(max(l2[l2 < 0]),27),c(max(l23[l23 < 0]),15))
+
+rownames(l_df) <- c('Log-likelihood', 'Iterations')
+colnames(l_df) <- c("M=3", "M=4", "M=2")
+
+knitr::kable(l_df, caption="Log-likelihood for the different M's", digits=0)
+
+```
+
+We get different number of iterations for M's, the one with the lowest amount of iterations is for M=2 and the one with the most is for M=4. The log likelihood is lowest for M=4 and this is expected as increasing the value of M will lead to a better fit of the data, but this is only for the training data so it will not return a generalized model. 
+
+
+### Comparing the pi values for the different M's
+```{r}
+pi_df <- list("M=2"=pi_3,'M=3'=pi_1,"M=4"=pi_2)
+pi_df
+```
+
+The probability $\pi$ sum to 1 for all models as expected and the probability looks to be divided equally between each group for all models.
+
+\pagebreak
+
+# Appendix
+ 
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
+ 
+
+
