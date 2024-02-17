@@ -15,7 +15,7 @@ The code is written in R, using Rmarkdown and a pdf with the results have been g
 
 K-Nearest Neighbors is a simple and effective algorithm for classification tasks. It works by finding the K nearest points in the training data to a given data point and making predictions based on the majority class among those neighbors.
 
-```(R)
+```R
 library(caret)
 
 # Load Iris dataset
