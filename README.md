@@ -79,7 +79,7 @@ library(rpart)
 
 # Load Iris dataset
 data(iris)
-set.seed(42)
+set.seed(12345)
 train_index <- createDataPartition(iris$Species, p = 0.6, list = FALSE)
 train_data <- iris[train_index, ]
 temp_data <- iris[-train_index, ]
