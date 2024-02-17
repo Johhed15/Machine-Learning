@@ -38,8 +38,8 @@ best_accuracy <- 0
 # Loop through each k value
 for (k in k_values) {
   # Train KNN model
-  knn_model <- train(Species ~ ., data = train_data, method = "knn", trControl = trainControl(method = "cv", number = 5)
-, tuneGrid = data.frame(k = k))
+  knn_model <- train(Species ~ ., data = train_data, method = "knn", trControl = trainControl(method = "cv", number = 5),
+                    tuneGrid = data.frame(k = k))
 
   # Make predictions on validation set
   knn_predictions <- predict(knn_model, newdata = validation_data)
@@ -56,7 +56,7 @@ for (k in k_values) {
 
 # Train KNN model with best k
 final_knn_model <- train(Species ~ ., data = train_data, method = "knn", trControl = trainControl(method = "cv", number = 5),
- tuneGrid = data.frame(k = best_k))
+                         tuneGrid = data.frame(k = best_k))
 
 # Make predictions on test set
 final_knn_predictions <- predict(final_knn_model, newdata = test_data)
