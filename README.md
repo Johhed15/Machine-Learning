@@ -64,7 +64,7 @@ final_knn_predictions <- predict(final_knn_model, newdata = test_data)
 # Calculate final accuracy
 final_knn_accuracy <- confusionMatrix(final_knn_predictions, test_data$Species)$overall["Accuracy"]
 print(paste("Best K for KNN:", best_k))
-print(paste("KNN Accuracy with Best K:", final_knn_accuracy))
+print(paste("KNN Accuracy on testdata with Best K:", final_knn_accuracy))
 
 ```
 "Best K for KNN: 13"<br>
