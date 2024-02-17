@@ -38,8 +38,8 @@ best_accuracy <- 0
 # Loop through each k value
 for (k in k_values) {
   # Train KNN model
-  knn_model <- train(Species ~ ., data = train_data, method = "knn", trControl = trainControl(method = "cv", number = 5),
-                    tuneGrid = data.frame(k = k))
+  knn_model <- train(Species ~ ., data = train_data, method = "knn",
+ trControl = trainControl(method = "cv", number = 5),tuneGrid = data.frame(k = k))
 
   # Make predictions on validation set
   knn_predictions <- predict(knn_model, newdata = validation_data)
@@ -55,8 +55,8 @@ for (k in k_values) {
 }
 
 # Train KNN model with best k
-final_knn_model <- train(Species ~ ., data = train_data, method = "knn", trControl = trainControl(method = "cv", number = 5),
-                         tuneGrid = data.frame(k = best_k))
+final_knn_model <- train(Species ~ ., data = train_data, method = "knn",
+ trControl = trainControl(method = "cv", number = 5), tuneGrid = data.frame(k = best_k))
 
 # Make predictions on test set
 final_knn_predictions <- predict(final_knn_model, newdata = test_data)
@@ -88,7 +88,8 @@ validation_data <- temp_data[validation_index, ]
 test_data <- temp_data[-validation_index, ]
 
 # Train a large decision tree
-large_dt_model <- rpart(Species ~ ., data = train_data, method = "class", control = rpart.control(cp = 0))
+large_dt_model <- rpart(Species ~ ., data = train_data, method = "class",
+ control = rpart.control(cp = 0))
 
 # Prune the tree using cross-entropy on validation set
 pruned_cp <- large_dt_model$cptable[which.min(large_dt_model$cptable[,"xerror"]), "CP"]
@@ -98,14 +99,18 @@ pruned_dt_model <- prune(large_dt_model, cp = pruned_cp)
 pruned_dt_predictions_val <- predict(pruned_dt_model, newdata = validation_data, type = "class")
 
 # Calculate accuracy on validation set
-pruned_dt_accuracy_val <- confusionMatrix(pruned_dt_predictions_val, validation_data$Species)$overall["Accuracy"]
+pruned_dt_accuracy_val <- confusionMatrix(pruned_dt_predictions_val,
+validation_data$Species)$overall["Accuracy"]
+
 print(paste("Decision Tree Accuracy on Validation Set after Pruning:", pruned_dt_accuracy_val))
 
 # Make predictions on test set using the pruned tree
 pruned_dt_predictions_test <- predict(pruned_dt_model, newdata = test_data, type = "class")
 
 # Calculate accuracy on test set
-pruned_dt_accuracy_test <- confusionMatrix(pruned_dt_predictions_test, test_data$Species)$overall["Accuracy"]
+pruned_dt_accuracy_test <- confusionMatrix(pruned_dt_predictions_test,
+test_data$Species)$overall["Accuracy"]
+
 print(paste("Decision Tree Accuracy on Test Set after Pruning:", pruned_dt_accuracy_test))
 ```
 "Decision Tree Accuracy on Validation Set after Pruning: 0.9" <br>
