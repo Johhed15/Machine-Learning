@@ -110,7 +110,10 @@ print(paste("Decision Tree Accuracy on Test Set after Pruning:", pruned_dt_accur
 ```
 "Decision Tree Accuracy on Validation Set after Pruning: 0.9" <br>
 "Decision Tree Accuracy on Test Set after Pruning: 0.966666666666667"
-
+<br>
+<br>
+<br>
+<br>
 <div align="center">
   <img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExaWN4d2h5bGg1emo2MTJmYTl5aXdrZG9zaXlkdHo4NHIzaXVibmZpbSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/WmBl8pvjfyYUszw1TS/giphy.gif" width="600" height="600"/>
 </div>
